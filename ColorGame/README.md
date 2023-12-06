@@ -29,7 +29,7 @@ NOTE: There is currently a bug (fix in progress) that causes 2 extra little wind
 ### Capture Rules
 - To capture more squares, change the color of your territory to be the same as squares your territory is adjacent to. 
 
-> EXAMPLE: If your territory os blue and it's  touching 3 red squares, you can change to red and claim those 3 squares.
+> EXAMPLE: If your territory is blue and it's  touching 3 red squares, you can change to red and claim those 3 squares.
 
 ### Win Conditions
 - The game continues until all squares are claimed
