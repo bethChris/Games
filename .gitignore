@@ -1,0 +1,19 @@
+*.csv
+venv
+.DS_Store
+__pycache__
+*.pyc
+*.zip
+*.bak
+
+# IntelliJ and java stuffs
+.idea/
+*.iml
+*.iws
+out/
+/build/
+/bin/
+/dist/
+/artifacts/
+.class
+.gradle
