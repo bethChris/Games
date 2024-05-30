@@ -1,20 +1,3 @@
-//anchor player to bottom
-//implement movement (left and right)
-//randomize which items get dropped
-//randomize number of items dropped per second
-
-
-//set up info
-const screenWidth = 400;
-const screenHeight = 400;
-var image = new Image();
-image.addEventListener("load", loadHandler, false);
-image.src = "moo.png";
-
-var strawb = new Image();
-strawb.addEventListener("load", loadHandler, false)
-strawb.src = "strawberry.png";
-
 class Player  {
   constructor(image, screenWidth, screenHeight){
     this.width = 64
@@ -22,26 +5,29 @@ class Player  {
     this.image = image
     this.x = (screenWidth/2) - this.width/2 
     this.y = screenHeight - this.height
-
     this.speed = 200; 
+    this.stack = [];
+    // this.addLayer(image)
+  }
+
+  addLayer(item){
+    this.stack.push(item)
   }
 }
 
 //TODO: maybe make these (player/ingredient) the same/inherit from similar template object?
 class Ingredient {
-  constructor(image, screenWidth, screenHeight){
+  constructor(image, screenWidth, screenHeight, cakeLayer){
     this.image = image;
     this.width = 32
     this.height = 32
     this.image = image
     this.x = Math.floor(Math.random()* (screenWidth-this.width))
-    // this.x = (screenWidth/2) - this.width/2 
     this.y = 0
     this.screenHeight = screenHeight;
     this.screenWidth = screenWidth;
     this.speed = Math.floor((Math.random() * 50) + 150); //range 150-200
-    console.log("SPEED")
-    console.log(this.speed)
+    this.cakeLayer = cakeLayer;
   }
 
   fall(delta){
@@ -51,35 +37,125 @@ class Ingredient {
   }
 }
 
-
-function createIngredient(){
-  //TODO: put random shuffling into this? (not just strawberries)
-  var ingredient = new Ingredient(strawb, screenWidth, screenHeight);
-  
-  return ingredient;
-}
-
-//handle movement and rendering
-window.addEventListener("keydown", handleMove)
-window.addEventListener("keyup", handleMove)
+// initial game info
+const screenWidth = 500;
+const screenHeight = 750;
 
 var canvas = document.querySelector("canvas");
 var drawingSurface = canvas.getContext("2d");
-var player = new Player(image, screenWidth, screenHeight);
 var text = document.getElementById("msg");
+
 var keys = {};
 var lastTime = 0;
-
+var ingredientChoices = [];
 var ingredients = [];
-ingredients.push(createIngredient());
-ingredients.push(createIngredient());
-ingredients.push(createIngredient());
+var player = null;
+
+const ingredientImages = [
+  "strawberry.png",
+  "bad.png"
+];
+
+const layerImages = [
+  "strawbCake.png",
+  "badCake.png"
+];
+
+const playerImage = ["moo.png"];
+
+
+//initial set up functions
+function setUp(){
+  // preload all images, 
+  // then do an initial render
+  // setup player and ingredients
+  // add startbutton functionality
+  preload(() =>{
+    initialRender();
+    // player = new Player()
+    ingredients.push(createIngredient());
+    ingredients.push(createIngredient());
+    ingredients.push(createIngredient());
+    document.getElementById('startButton').addEventListener('click', loadHandler);
+  }) 
+}
+
+function preload(callback){
+  preloadImages(ingredientImages, (loadedImages) => {
+    for (let i = 0; i < loadedImages.length; i++){
+      ingredientChoices[i] = [loadedImages[i]];
+    }
+    console.log("Preloaded Ingredients");
+    preloadImages(layerImages, (loadedImages) => {
+      for (let i = 0; i < loadedImages.length; i++){
+        ingredientChoices[i].push(loadedImages[i]);
+      }
+      console.log("Preloaded Layers");
+      preloadImages(playerImage, (loadedImages) => {
+        player = new Player(loadedImages[0], screenWidth, screenHeight);
+        console.log("Preloaded Player");
+        callback()
+      })
+    
+    })
+    
+  })
+}
+
+function initialRender(){
+  for (let i = 0; i < ingredientChoices.length; i++){
+    drawingSurface.drawImage
+    (
+    ingredientChoices[i][0], 
+    0, 0, 32, 32
+    )
+
+    drawingSurface.drawImage
+    (
+    ingredientChoices[i][1], 
+    0, 0, 32, 32
+    )
+    drawingSurface.clearRect(0,0, canvas.width, canvas.height);
+  }
+  render();
+  console.log("Finished Initial Render");
+}
+
+
+//preload images
+function preloadImages(sources, callback) {
+  let loadedImages = 0;
+  let numImages = sources.length;
+  let images = [];
+
+  for (let i = 0; i < numImages; i++) {
+    images[i] = new Image();
+    images[i].onload = () => {
+      loadedImages++;
+      if (loadedImages === numImages) {
+        console.log(images)
+        callback(images);
+      }
+    };
+    images[i].src = sources[i];
+  }
+}
+
+//initial set up call
+setUp();
+
+function createIngredient(){
+  var choice = Math.floor(Math.random()*ingredientChoices.length)
+  console.log(choice)
+  var ingredient = new Ingredient(ingredientChoices[choice][0], screenWidth, screenHeight, ingredientChoices[choice][1]);
+  
+  return ingredient;
+}
 
 function checkCollision(ingredient){
   //if any of the four corners of the ingreident are inside the players box, then its a hit
   if (ingredient.x <= player.x + player.width && ingredient.x + ingredient.width >= player.x){
     if (ingredient.y <= player.y + player.height && ingredient.y + ingredient.height >= player.y){
-      console.log(ingredient.x, player.x)
       text.innerHTML = "HIT";
       return true;
     }
@@ -92,6 +168,8 @@ function handleMove(e){
 }
 
 function loadHandler(){
+  window.addEventListener("keydown", handleMove);
+  window.addEventListener("keyup", handleMove);
   lastTime = performance.now();
   update();
 }
@@ -120,6 +198,7 @@ function update(){
     ingredients[i].fall(deltaTime);
     if (checkCollision(ingredients[i])){
       ingredients.push(createIngredient());
+      player.addLayer(ingredients[i].cakeLayer)
     }else{
       keep.push(ingredients[i]);
     }
@@ -137,6 +216,15 @@ function render()
   player.image, 
   player.x, player.y, player.width, player.height 
   )
+
+  //TODO: is this better to do in a loop or have each cake layer know it's position?
+  for (let i = 0; i < player.stack.length; i++){
+    drawingSurface.drawImage
+    (
+    player.stack[i], 
+    player.x, player.y - ((i+1)*player.height/3), player.width, player.height/3
+    )
+  }
   
   for (let i = 0; i < ingredients.length; i++){
     drawingSurface.drawImage
