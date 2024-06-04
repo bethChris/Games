@@ -113,12 +113,14 @@ var player = null;
 
 const ingredientImages = [
   "strawberry.png",
-  "bad.png"
+  "bad.png",
+  "chocolate.png"
 ];
 
 const layerImages = [
   "strawbCake.png",
-  "badCake.png"
+  "badCake.png",
+  "chocoCake.png"
 ];
 
 const playerImage = ["moo.png"];
@@ -210,9 +212,11 @@ function createIngredient(){
   return ingredient;
 }
 
+
 function handleMove(e){
   keys[e.key] = e.type === 'keydown';
 }
+
 
 function loadHandler(){
   window.addEventListener("keydown", handleMove);
@@ -220,6 +224,7 @@ function loadHandler(){
   lastTime = performance.now();
   update();
 }
+
 
 //FUNCTION: update()
 //PURPOSE: updates the position of all objects on screen before calling render(), 

@@ -36,6 +36,7 @@ Better late than never
 
 - UI of cake stacks isn't seamless
 - Get ingredients to not overlap when falling from top
+- Randomize the drops of the ingredients instead of cycling?
 
 
 
