@@ -7,39 +7,99 @@ class Player  {
     this.y = screenHeight - this.height
     this.speed = 200; 
     this.stack = [];
-    // this.addLayer(image)
+    this.topOfStack = this.y;
   }
 
-  addLayer(item){
-    this.stack.push(item)
+  addLayer(ingredient){
+    this.topOfStack -= this.height/3;
+    var cakeLayer = new Layer(ingredient.cakeLayer, screenHeight, screenWidth, this.width, this.height/3, this.x, this.topOfStack)
+    this.stack.push(cakeLayer);
+  }
+
+  draw(drawingSurface){
+    //draw player
+    drawingSurface.drawImage
+    (
+    this.image, 
+    this.x, this.y, this.width, this.height 
+    )
+
+    //draw player stack
+    for (let i = 0; i < this.stack.length; i++){
+      this.stack[i].draw(drawingSurface)
+    }
+  }
+
+  checkCollision(item){
+    //considers it a hit only when item hits top stack/player
+    if (item.x <= this.x + this.width && item.x + item.width >= this.x){
+      if (item.y + item.height >= this.topOfStack && item.y + item.height <= this.topOfStack+5){ //TODO: decide if we like this
+        console.log("CHEEKY");
+        return true;
+      }
+    }
+    return false;
   }
 }
 
 //TODO: maybe make these (player/ingredient) the same/inherit from similar template object?
 class Ingredient {
-  constructor(image, screenWidth, screenHeight, cakeLayer){
+  constructor(image, screenWidth, screenHeight, cakeLayer, cakeWidth){
     this.image = image;
     this.width = 32
     this.height = 32
-    this.image = image
     this.x = Math.floor(Math.random()* (screenWidth-this.width))
     this.y = 0
     this.screenHeight = screenHeight;
     this.screenWidth = screenWidth;
     this.speed = Math.floor((Math.random() * 50) + 150); //range 150-200
     this.cakeLayer = cakeLayer;
+    this.cakeWidth = cakeWidth;
+    this.cakeHeight = this.height/2;
   }
 
   fall(delta){
-    if (this.y + this.height < screenHeight){
+    if (this.y <= screenHeight){
       this.y += this.speed * delta;
+      return true;
     }
+    return false;
+  }
+
+  draw(drawingSurface){
+    drawingSurface.drawImage
+    (
+    this.image, 
+    this.x, this.y, this.width, this.height
+    )
   }
 }
 
+class Layer {
+  constructor(image, screenWidth, screenHeight, width, height, x, y){
+    this.image = image;
+    this.width = width;
+    this.height = height;
+    this.x = x;
+    this.y = y;
+    this.screenHeight = screenHeight;
+    this.screenWidth = screenWidth;
+  }
+
+  draw(drawingSurface){
+    drawingSurface.drawImage
+    (
+    this.image, 
+    this.x, this.y, this.width, this.height
+    )
+  }
+}
+
+
+
 // initial game info
 const screenWidth = 500;
-const screenHeight = 750;
+const screenHeight = 500;
 
 var canvas = document.querySelector("canvas");
 var drawingSurface = canvas.getContext("2d");
@@ -146,21 +206,8 @@ setUp();
 
 function createIngredient(){
   var choice = Math.floor(Math.random()*ingredientChoices.length)
-  console.log(choice)
-  var ingredient = new Ingredient(ingredientChoices[choice][0], screenWidth, screenHeight, ingredientChoices[choice][1]);
-  
+  var ingredient = new Ingredient(ingredientChoices[choice][0], screenWidth, screenHeight, ingredientChoices[choice][1], player.width);
   return ingredient;
-}
-
-function checkCollision(ingredient){
-  //if any of the four corners of the ingreident are inside the players box, then its a hit
-  if (ingredient.x <= player.x + player.width && ingredient.x + ingredient.width >= player.x){
-    if (ingredient.y <= player.y + player.height && ingredient.y + ingredient.height >= player.y){
-      text.innerHTML = "HIT";
-      return true;
-    }
-  }
-  return false;
 }
 
 function handleMove(e){
@@ -174,6 +221,11 @@ function loadHandler(){
   update();
 }
 
+//FUNCTION: update()
+//PURPOSE: updates the position of all objects on screen before calling render(), 
+//         adding/removing them if necessary
+//IN: n/a
+//OUT: n/a
 function update(){
   let currentTime = performance.now();
   let deltaTime = (currentTime - lastTime) / 1000;
@@ -184,6 +236,7 @@ function update(){
     if (player.x + player.width < screenWidth){
       text.innerHTML = "Right";
       player.x += player.speed * deltaTime;
+      
     }
     
   }else if (keys['a'] | keys["ArrowLeft"]){
@@ -192,46 +245,46 @@ function update(){
       player.x -= player.speed * deltaTime;
     }
   }  
+
+  for (let i = 0; i < player.stack.length; i++){
+    player.stack[i].x = player.x;
+  }
   
   var keep = [];
   for (let i = 0; i < ingredients.length; i++){
-    ingredients[i].fall(deltaTime);
-    if (checkCollision(ingredients[i])){
-      ingredients.push(createIngredient());
-      player.addLayer(ingredients[i].cakeLayer)
+    if (ingredients[i].fall(deltaTime)){
+      if (player.checkCollision(ingredients[i])){
+        keep.push(createIngredient());
+        player.addLayer(ingredients[i])
+      }else{
+        keep.push(ingredients[i]);
+      }
     }else{
-      keep.push(ingredients[i]);
+      keep.push(createIngredient());
     }
+    
   }
   ingredients = keep;
   window.requestAnimationFrame(update);
   render();
 }
 
+
+//FUNCTION: render()
+//PURPOSE: displays the images on the drawing surface, calls drawing functions of objects 
+//IN: n/a
+//OUT: n/a
 function render()
 {
+  //clear screen
   drawingSurface.clearRect(0,0, canvas.width, canvas.height);
-  drawingSurface.drawImage
-  (
-  player.image, 
-  player.x, player.y, player.width, player.height 
-  )
 
-  //TODO: is this better to do in a loop or have each cake layer know it's position?
-  for (let i = 0; i < player.stack.length; i++){
-    drawingSurface.drawImage
-    (
-    player.stack[i], 
-    player.x, player.y - ((i+1)*player.height/3), player.width, player.height/3
-    )
-  }
+  //draw player
+  player.draw(drawingSurface);
   
+  //draw ingredients falling
   for (let i = 0; i < ingredients.length; i++){
-    drawingSurface.drawImage
-    (
-    ingredients[i].image, 
-    ingredients[i].x, ingredients[i].y, ingredients[i].width, ingredients[i].height
-    )
+    ingredients[i].draw(drawingSurface);
   }
 }
 
