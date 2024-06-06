@@ -16,6 +16,11 @@ class Player  {
     this.stack.push(cakeLayer);
   }
 
+  clearStack(){
+    this.stack = [];
+    this.topOfStack = this.y;
+  }
+
   draw(drawingSurface){
     //draw player
     drawingSurface.drawImage
@@ -96,15 +101,24 @@ class Layer {
 }
 
 
-
 // initial game info
 const screenWidth = 500;
 const screenHeight = 500;
-
+const levels = {
+  1:{
+    "numIngredients":3,
+    "badSpawnRate": 0.25 //TODO: integrate this into makeIngredient()
+  },
+  2:{
+    "numIngredients":4,
+    "badSpawnRate": 0.25
+  }
+}
+let curLevel = 0;
+let levelStackHeightMax = 10;
 var canvas = document.querySelector("canvas");
 var drawingSurface = canvas.getContext("2d");
 var text = document.getElementById("msg");
-
 var keys = {};
 var lastTime = 0;
 var ingredientChoices = [];
@@ -116,17 +130,44 @@ const ingredientImages = [
   "bad.png",
   "chocolate.png"
 ];
-
 const layerImages = [
   "strawbCake.png",
   "badCake.png",
   "chocoCake.png"
 ];
-
 const playerImage = ["moo.png"];
 
 
+function nextLevel(){
+  curLevel += 1;
+
+  if (curLevel > Object.keys(levels).length){
+    return false;
+  }else{
+    setupLevel();
+    return true;
+  }
+}
+
+
+function setupLevel(){
+  console.log("SET UP FOR " + curLevel)
+  ingredients = [];
+  player.clearStack();
+  let numIngredients = levels[curLevel]["numIngredients"]
+  let badSpawnRate = levels[curLevel]["badSpawnRate"]
+
+  for (let i = 0; i < numIngredients; i++){
+    ingredients.push(createIngredient(badSpawnRate))
+  }
+}
+
+
 //initial set up functions
+//FUNCTION: setUP()
+//PURPOSE: sets up the game on load, calling preload/render and setting up the level
+//IN: n/a
+//OUT: n/a
 function setUp(){
   // preload all images, 
   // then do an initial render
@@ -134,14 +175,19 @@ function setUp(){
   // add startbutton functionality
   preload(() =>{
     initialRender();
-    // player = new Player()
-    ingredients.push(createIngredient());
-    ingredients.push(createIngredient());
-    ingredients.push(createIngredient());
+    nextLevel();
     document.getElementById('startButton').addEventListener('click', loadHandler);
   }) 
 }
 
+
+//FUNCTION: preload()
+//PURPOSE: chains the preloadImage calls, 
+//         sets up player, 
+//         sets up ingredient choice list
+//IN: 
+//  callback: callback function
+//OUT: n/a
 function preload(callback){
   preloadImages(ingredientImages, (loadedImages) => {
     for (let i = 0; i < loadedImages.length; i++){
@@ -164,6 +210,11 @@ function preload(callback){
   })
 }
 
+
+//FUNCTION: initialRender()
+//PURPOSE: initial render of all ingredient and layer images
+//IN: n/a
+//OUT: n/a
 function initialRender(){
   for (let i = 0; i < ingredientChoices.length; i++){
     drawingSurface.drawImage
@@ -184,7 +235,12 @@ function initialRender(){
 }
 
 
-//preload images
+//FUNCTION: preloadImages()
+//PURPOSE: loads all specified images then calls back to the previous function
+//IN: 
+//  sources: list of image locations
+//  callback: callback function
+//OUT: n/a
 function preloadImages(sources, callback) {
   let loadedImages = 0;
   let numImages = sources.length;
@@ -203,10 +259,12 @@ function preloadImages(sources, callback) {
   }
 }
 
+
 //initial set up call
 setUp();
 
-function createIngredient(){
+
+function createIngredient(badSpawnRate){
   var choice = Math.floor(Math.random()*ingredientChoices.length)
   var ingredient = new Ingredient(ingredientChoices[choice][0], screenWidth, screenHeight, ingredientChoices[choice][1], player.width);
   return ingredient;
@@ -225,6 +283,14 @@ function loadHandler(){
   update();
 }
 
+function checkWin(){
+  //TODO: do more when reach the final level
+  if (player.stack.length > levelStackHeightMax){
+    return !nextLevel();
+  }
+  return false;
+  
+}
 
 //FUNCTION: update()
 //PURPOSE: updates the position of all objects on screen before calling render(), 
@@ -235,6 +301,7 @@ function update(){
   let currentTime = performance.now();
   let deltaTime = (currentTime - lastTime) / 1000;
   lastTime = currentTime;
+
 
   if (keys['d'] | keys["ArrowRight"])
   {
@@ -270,8 +337,17 @@ function update(){
     
   }
   ingredients = keep;
-  window.requestAnimationFrame(update);
-  render();
+
+  
+  if (checkWin()){
+    text.innerHTML = "WIN!";
+    ingredients = [];
+    drawingSurface.clearRect(0,0, canvas.width, canvas.height);
+  }else{
+    window.requestAnimationFrame(update);
+    render();
+  }
+  
 }
 
 
